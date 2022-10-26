@@ -2,11 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
+	"example.com/Chat-app/database"
 	"example.com/Chat-app/handlers"
 	"example.com/Chat-app/helpers"
+	"example.com/Chat-app/types"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/websocket/v2"
@@ -89,4 +92,33 @@ func main() {
 		}
 	}))
 	app.Listen(":3000")
+}
+
+func testDBConnection() {
+
+	ccuDb, ok, err := database.ConnectDB("ccu")
+	if !ok {
+		panic(err)
+	}
+
+	var strSQL string = "select id, game_id, title, description from jobs order by id desc limit 5"
+
+	var jobs []types.Job
+	result, err := ccuDb.Query(strSQL)
+	// err = result.Scan()
+
+	if err != nil {
+		panic(err)
+	}
+
+	for result.Next() {
+		var job types.Job
+		err = result.Scan(&job.Id, &job.Game_id, &job.Title, &job.Description)
+		if err != nil {
+			panic(err)
+		}
+		jobs = append(jobs, job)
+	}
+
+	fmt.Printf("%v", jobs)
 }
