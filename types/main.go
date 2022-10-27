@@ -1,5 +1,15 @@
 package types
 
+type Chat struct {
+	Username string `json:"username"`
+	Text     string `json:"text"`
+}
+
+type WebSocketEvent struct {
+	EventName string                 `json:"eventName"`
+	Data      map[string]interface{} `json:"data"`
+}
+
 type DBConfig struct {
 	Driver   string `json:"driver"`
 	Host     string `json:"host"`

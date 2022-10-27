@@ -20,7 +20,8 @@ func ConnectDB(name string) (db *sql.DB, ok bool, err error) {
 		return DbConnect[name], true, nil
 	}
 
-	dbConfig := config.DBConfig[name]
+	dbConfig := config.GetDBConfig(name)
+	fmt.Println(dbConfig)
 	dns := fmt.Sprintf("%v:%v@tcp(%v:%v)/%v", dbConfig.User, dbConfig.Password, dbConfig.Host, dbConfig.Port, dbConfig.Database)
 	db, err = sql.Open(dbConfig.Driver, dns)
 	if err != nil {

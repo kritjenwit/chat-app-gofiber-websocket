@@ -13,17 +13,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/websocket/v2"
+	_ "github.com/joho/godotenv/autoload"
 )
-
-type Chat struct {
-	Username string `json:"username"`
-	Text     string `json:"text"`
-}
-
-type WebSocketEvent struct {
-	EventName string                 `json:"eventName"`
-	Data      map[string]interface{} `json:"data"`
-}
 
 var (
 	chatHistorys map[int64]fiber.Map
@@ -49,6 +40,10 @@ func send(c *websocket.Conn, mt int, msg []byte) (s bool, err error) {
 }
 
 func main() {
+
+	// fmt.Println("OS", os.Getenv("DBHOST"))
+	database.ConnectDB("ccu")
+
 	chatHistorys = make(map[int64]fiber.Map)
 	app := initServer()
 	app.Get("/ws", websocket.New(func(c *websocket.Conn) {
@@ -57,7 +52,7 @@ func main() {
 			mt   int
 			msg  []byte
 			err  error
-			data WebSocketEvent
+			data types.WebSocketEvent
 		)
 		nsec = time.Now().UnixNano()
 
@@ -94,7 +89,7 @@ func main() {
 	app.Listen(":3000")
 }
 
-func testDBConnection() {
+func TestDBConnection() {
 
 	ccuDb, ok, err := database.ConnectDB("ccu")
 	if !ok {
