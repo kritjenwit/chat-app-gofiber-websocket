@@ -26,3 +26,8 @@ type Job struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 }
+
+type RoomOnline struct {
+	UserID     int
+	CreateTime string
+}
