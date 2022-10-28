@@ -4,8 +4,8 @@ import (
 	"os"
 
 	"example.com/Chat-app/constants"
-	"example.com/Chat-app/helpers"
 	"example.com/Chat-app/types"
+	"example.com/Chat-app/utils"
 )
 
 var (
@@ -16,7 +16,7 @@ func setup() {
 	DBConfig["ccu"] = types.DBConfig{
 		Driver:   constants.MYSQL_DRIVER,
 		Host:     os.Getenv("DBHOST"),
-		Port:     helpers.ToInt(os.Getenv("DBPORT")),
+		Port:     utils.ToInt(os.Getenv("DBPORT")),
 		User:     os.Getenv("DBUSER"),
 		Password: os.Getenv("DBPASS"),
 		Database: os.Getenv("DBNAME"),

@@ -8,10 +8,11 @@ import (
 
 	"example.com/Chat-app/database"
 	"example.com/Chat-app/handlers"
-	"example.com/Chat-app/helpers"
 	"example.com/Chat-app/types"
+	"example.com/Chat-app/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/template/html"
 	"github.com/gofiber/websocket/v2"
 	_ "github.com/joho/godotenv/autoload"
 )
@@ -20,11 +21,14 @@ var (
 	chatHistorys map[int64]fiber.Map
 )
 
-func initServer() *fiber.App {
-	app := fiber.New()
+func initServer(engine *html.Engine) *fiber.App {
+	app := fiber.New(fiber.Config{
+		Views: engine,
+	})
 	app.Use(cors.New())
-	app.Static("/", "./public/")
 	app.Use("/ws", handlers.Upgrade)
+	app.Static("/style/", "./public/style/")
+	app.Static("/js/", "./public/js/")
 	return app
 }
 
@@ -41,11 +45,16 @@ func send(c *websocket.Conn, mt int, msg []byte) (s bool, err error) {
 
 func main() {
 
-	// fmt.Println("OS", os.Getenv("DBHOST"))
-	database.ConnectDB("ccu")
-
 	chatHistorys = make(map[int64]fiber.Map)
-	app := initServer()
+	engine := html.New("./views", ".html")
+	app := initServer(engine)
+
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.Render("index", fiber.Map{
+			"Title": "My World",
+		})
+	})
+
 	app.Get("/ws", websocket.New(func(c *websocket.Conn) {
 		var (
 			nsec int64
@@ -71,7 +80,7 @@ func main() {
 			if data.EventName == "connected" {
 				if msg, err = json.Marshal(fiber.Map{
 					"eventName":    data.EventName,
-					"chatHistorys": helpers.MapValues(chatHistorys),
+					"chatHistorys": utils.MapValues(chatHistorys),
 				}); err != nil {
 					log.Println("marshal:", err)
 					break

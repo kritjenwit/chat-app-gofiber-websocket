@@ -12,7 +12,3 @@ func Upgrade(c *fiber.Ctx) error {
 	}
 	return fiber.ErrUpgradeRequired
 }
-
-func New(c *websocket.Conn) {
-
-}
