@@ -13,22 +13,23 @@ import (
 )
 
 var (
-	chatHistorys map[int64]fiber.Map
+	app *fiber.App
+	ok  bool
+	err error
 )
 
 func setup() *fiber.App {
-	app := fiber.New()
+	app = fiber.New()
 	app.Use(cors.New())
 	app.Use("/ws", handlers.Upgrade)
 	return app
 }
 
 func main() {
-	app := setup()
+	app = setup()
 
-	app.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("<h1>Chat APP | Backend</h1>")
-	})
+	// app.Get("/", handlers.IndexHandler)
+	app.Static("/", "./public")
 	app.Get("/ws", websocket.New(handlers.WsHandler))
 	app.Listen(":3000")
 }

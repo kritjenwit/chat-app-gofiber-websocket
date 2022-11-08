@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"time"
+	"strconv"
 
 	"example.com/Chat-app/database"
 	"example.com/Chat-app/types"
@@ -14,12 +14,16 @@ import (
 )
 
 var (
-	nsec int64
-	mt   int
-	msg  []byte
-	err  error
-	data types.WebSocketEvent
+	mt        int
+	msg       []byte
+	err       error
+	userId    int
+	strUserId string
+	data      types.WebSocketEvent
+	ok        bool
 )
+
+var pl = fmt.Println
 
 func Upgrade(c *fiber.Ctx) error {
 	if websocket.IsWebSocketUpgrade(c) {
@@ -30,11 +34,7 @@ func Upgrade(c *fiber.Ctx) error {
 }
 
 func WsHandler(c *websocket.Conn) {
-
-	nsec = time.Now().UnixNano()
-
 	for {
-
 		if mt, msg, err = c.ReadMessage(); err != nil {
 			log.Println("read:", err)
 			break
@@ -45,34 +45,58 @@ func WsHandler(c *websocket.Conn) {
 			break
 		}
 
-		userId := data.Data["userId"]
-
-		fmt.Println(userId)
-
 		if data.EventName == "connected" {
-			rooms, err := database.GetAllRooms()
-			if err != nil {
-				log.Println(err)
-				panic(err)
-			}
-
-			if rooms == nil {
-				rooms = make(map[int]types.RoomOnline, 0)
-			}
-
-			response := fiber.Map{
-				"emitName": data.EventName,
-				"data": fiber.Map{
-					"rooms": utils.MapValues(rooms),
-				},
-			}
-
-			if msg, err = json.Marshal(response); err != nil {
-				log.Println(err)
-				panic(err)
-			}
-
-			utils.WriteMessage(c, mt, msg)
+			onConnected(c, data)
 		}
 	}
+}
+
+func onConnected(c *websocket.Conn, data types.WebSocketEvent) {
+
+	strUserId, ok = data.Data["userId"].(string)
+	if !ok {
+		log.Println("userId is not a string")
+		return
+	}
+
+	userId, err = strconv.Atoi(strUserId)
+	if err != nil {
+		log.Println("userId is not a number")
+		return
+	}
+
+	ok, err := database.CreateRoom(userId)
+
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+
+	if !ok {
+		return
+	}
+
+	rooms, err := database.GetAllRooms()
+	if err != nil {
+		log.Println(err)
+		panic(err)
+	}
+
+	if rooms == nil {
+		rooms = make(map[int]types.RoomOnline, 0)
+	}
+
+	response := fiber.Map{
+		"emitName": data.EventName,
+		"data": fiber.Map{
+			"rooms": utils.MapValues(rooms),
+		},
+	}
+
+	if msg, err = json.Marshal(response); err != nil {
+		log.Println(err)
+		panic(err)
+	}
+
+	utils.WriteMessage(c, mt, msg)
 }
