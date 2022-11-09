@@ -1,33 +1,41 @@
-window.addEventListener("DOMContentLoaded", (_) => {
-  let websocket = new WebSocket(`ws://${window.location.host}/ws`);
-  let dataSend = {
+class Ws {
+  dataSend = {
     eventName: "connected",
     data: {},
   };
 
-  websocket.onopen = () => {
-    websocket.send(JSON.stringify(dataSend));
-  };
+  dataRecv = {};
 
-  websocket.onmessage = (e) => {
-    console.log(e);
-    let data = JSON.parse(e.data);
-    if (data.eventName == "connected") {
-      console.log(data.chatHistorys);
+  async connect() {
+    this.ws = new WebSocket(`ws://${window.location.host}/ws`);
+
+    return new Promise((resolve, reject) => {
+      this.ws.onopen = (event) => {
+        resolve(this);
+      };
+    });
+  }
+
+  set(eventName, data) {
+    this.dataSend.eventName = eventName;
+    this.dataSend.data = data;
+    return this;
+  }
+
+  async send() {
+    this.ws.send(JSON.stringify(this.dataSend));
+    return new Promise((resolve, reject) => {
+      this.ws.onmessage = (event) => {
+        resolve(event);
+      };
+    });
+  }
+
+  onMessage() {
+    this.ws.onmessage = (event) => {
+      console.log(event)
     }
-  };
+  }
 
-  let form = document.getElementById("input-form");
-  form.addEventListener("submit", function (event) {
-    event.preventDefault();
-    let username = document.getElementById("input-username");
-    let text = document.getElementById("input-text");
-    dataSend.eventName = "chat";
-    dataSend.data = {
-      username: username.value,
-      text: text.value,
-    };
-    websocket.send(JSON.stringify(dataSend));
-    text.value = "";
-  });
-});
+  onCallback() {}
+}

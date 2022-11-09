@@ -28,6 +28,13 @@ type Job struct {
 }
 
 type RoomOnline struct {
-	UserID     int
-	CreateTime string
+	UserID     int    `json:"user_id"`
+	CreateTime string `json:"create_time"`
+}
+
+type ChatLog struct {
+	RoomID     int    `json:"room_id"`
+	UserID     int    `json:"user_id"`
+	Text       string `json:"text"`
+	CreateTime string `json:create_time"`
 }

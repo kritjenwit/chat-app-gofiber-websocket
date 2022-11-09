@@ -46,12 +46,12 @@ func CreateRoom(userId int) (bool, error) {
 
 	row.Scan(&roomOnline.UserID, &roomOnline.CreateTime)
 
-	if roomOnline.UserID == 0 || roomOnline.CreateTime == "" {
-		return false, errors.New("room not found")
+	if roomOnline.UserID != 0 || roomOnline.CreateTime != "" {
+		return false, errors.New("room found")
 	}
 
 	strSQL = "insert into room_online (user_id, create_time) values (?, ?)"
-	result, err = db.Exec(strSQL, userId, time.Now().UTC)
+	result, err = db.Exec(strSQL, userId, time.Now())
 	if err != nil {
 		return false, err
 	}
@@ -95,4 +95,56 @@ func GetAllRooms() (map[int]types.RoomOnline, error) {
 	}
 
 	return result, nil
+}
+
+func GetChatLog() ([]types.ChatLog, error) {
+	db, err := setup()
+	if err != nil {
+		return nil, err
+	}
+
+	var chatLogs []types.ChatLog
+
+	rows, err := db.Query("select * from chat_log where room_id = ? order by create_time asc")
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var chatLog types.ChatLog
+		err = rows.Scan(&chatLog.RoomID, &chatLog.UserID, &chatLog.Text, &chatLog.CreateTime)
+		if err != nil {
+			return nil, err
+		}
+
+		chatLogs = append(chatLogs, chatLog)
+	}
+
+	return chatLogs, err
+}
+
+func InsertChatLog(roomId int, userId int, text string) error {
+	db, err := setup()
+	if err != nil {
+		return err
+	}
+
+	strSQL = "insert into chat_log (room_id, user_id, text, create_time) values (?, ?, ?, ?)"
+	result, err = db.Exec(strSQL, roomId, userId, text, time.Now())
+	if err != nil {
+		return err
+	}
+
+	affectedRows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if affectedRows > 0 {
+		return nil
+	}
+
+	result.LastInsertId()
+
+	return err
 }

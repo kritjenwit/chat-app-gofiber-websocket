@@ -8,10 +8,140 @@
   </head>
   <body>
     <h1></h1>
-    <form action="chat.html" method="get">
-      <input type="text" name="username" id="username" />
-      <button type="submit">Login</button>
-    </form>
-    <script></script>
+    <input type="text" name="userId" id="username" />
+    <button type="submit" id="btn-createroom">Create Room</button>
+
+    <div>
+      <table>
+        <thead>
+          <tr>
+            <th>Room ID</th>
+            <th>Create Date</th>
+            <th>Operation</th>
+          </tr>
+        </thead>
+        <tbody id="room-list"></tbody>
+      </table>
+    </div>
+    <script>
+      const webSocket = new WebSocket(`ws://${window.location.host}/ws`);
+      const roomList = document.getElementById("room-list");
+      const username = document.getElementById("username");
+      const btnCreateRoom = document.getElementById("btn-createroom");
+
+      function addRoomList(roomId, createTime) {
+        var template = `
+          <tr>
+            <td>${roomId}</td>
+            <td>${createTime}</td>
+            <td>
+              <button type="button" onclick="enterRoom(${roomId})">Enter Room</button>
+            </td>
+          </tr>
+        `;
+        roomList.innerHTML += template;
+      }
+
+      // function enterRoom(roomId) {
+      //   if (username.value.length == 0) {
+      //     return;
+      //   }
+
+      //   window.open(`chat.html?userId=${username.value}&roomId=${roomId}`);
+      // }
+
+      // async function main() {
+      //   let ws = await webSocket.connect();
+      //   let data = await ws.set("connected", {}).send();
+      //   data = JSON.parse(data.data);
+      //   let rooms = data.data.rooms;
+      //   if (rooms.length > 0) {
+      //     for (let i = 0; i < rooms.length; i++) {
+      //       let room = rooms[i];
+      //       let userId = room.user_id;
+      //       let createTime = room.create_time;
+      //       addRoomList(userId, createTime);
+      //     }
+      //   }
+      // }
+
+      // btnCreateRoom.addEventListener("click", () => {
+      //   window.open(
+      //     `chat.html?userId=${username.value}&roomId=${username.value}`
+      //   );
+      // });
+
+      btnCreateRoom.addEventListener("click", () => {
+        webSocket.send(
+          JSON.stringify({
+            eventName: "create-room",
+            data: {
+              roomId: username.value,
+            },
+          })
+        );
+      });
+
+      function enterRoom(roomId) {
+        webSocket.send(
+          JSON.stringify({
+            eventName: "join-room",
+            data: {
+              roomId: `${roomId}`,
+              userId: username.value,
+            },
+          })
+        );
+      }
+
+      async function main() {
+        webSocket.onopen = () => {
+          webSocket.send(
+            JSON.stringify({
+              eventName: "connected",
+              data: {},
+            })
+          );
+        };
+
+        webSocket.onmessage = (event) => {
+          console.log(event);
+          let eventData = JSON.parse(event.data);
+          let { eventName, data } = eventData;
+          if (eventName === "connected") {
+            let rooms = data.rooms;
+            if (rooms.length > 0) {
+              for (let i = 0; i < rooms.length; i++) {
+                let room = rooms[i];
+                let userId = room.user_id;
+                let createTime = room.create_time;
+                addRoomList(userId, createTime);
+              }
+            }
+          } else if (eventName === "join-room") {
+            let status = data.status;
+            let roomId = data.roomId;
+            let userId = data.userId;
+
+            console.log(data)
+
+            if (status === "ok") {
+              window.open(`chat.html?userId=${userId}&roomId=${roomId}`);
+            }
+          } else if (eventName === "create-room") {
+            let status = data.status;
+            let roomId = data.roomId;
+
+            if (status === "ok") {
+              window.open(`chat.html?userId=${roomId}&roomId=${roomId}`);
+            }
+          }
+        };
+      }
+
+      window.addEventListener("DOMContentLoaded", async function () {
+        main();
+      });
+    </script>
   </body>
 </html>
