@@ -46,7 +46,7 @@ func WsHandler(c *websocket.Conn) {
 		}
 
 		if data.EventName == constants.WS_EVENT_CONNECTED {
-			onConnected(c, data)
+			OnConnected(c, data)
 		} else if data.EventName == constants.WS_EVENT_JOIN_ROOM {
 			onJoinRoom(c, data)
 		} else if data.EventName == constants.WS_EVENT_SEND_MESSAGE {
@@ -57,7 +57,7 @@ func WsHandler(c *websocket.Conn) {
 	}
 }
 
-func onConnected(c *websocket.Conn, data types.WebSocketEvent) {
+func OnConnected(c *websocket.Conn, data types.WebSocketEvent) {
 
 	rooms, err := database.GetAllRooms()
 	if err != nil {

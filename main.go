@@ -1,22 +1,30 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 
-	"example.com/Chat-app/database"
 	"example.com/Chat-app/handlers"
-	"example.com/Chat-app/types"
+	"github.com/antoniodipinto/ikisocket"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/websocket/v2"
 	_ "github.com/joho/godotenv/autoload"
 )
 
+type DataEvent struct {
+	Type string         `json:"type"`
+	Data map[string]any `json:"data"`
+}
+
 var (
-	app *fiber.App
-	ok  bool
-	err error
+	app     *fiber.App
+	ok      bool
+	err     error
+	clients map[string]string
+	rooms   map[string]string
 )
+
+var pl = fmt.Println
 
 func setup() *fiber.App {
 	app = fiber.New()
@@ -25,40 +33,55 @@ func setup() *fiber.App {
 	return app
 }
 
-func main() {
-	app = setup()
+func chatSocketHandler() {
+	ikisocket.On(ikisocket.EventMessage, func(ep *ikisocket.EventPayload) {
 
-	// app.Get("/", handlers.IndexHandler)
-	app.Static("/", "./public")
-	app.Get("/ws", websocket.New(handlers.WsHandler))
-	app.Listen(":3000")
+		var data DataEvent
+		err = json.Unmarshal(ep.Data, &data)
+
+		if err != nil {
+			pl(err.Error())
+			return
+		}
+
+		if data.Type == "chat" {
+			response := fiber.Map{
+				"type":       data.Type,
+				"clientData": data.Data,
+				"response": fiber.Map{
+					"userId":  data.Data["userId"],
+					"message": data.Data["message"],
+				},
+			}
+
+			msg, err := json.Marshal(response)
+			if err != nil {
+				pl(err.Error())
+			}
+
+			ep.Kws.Broadcast(msg, false)
+		}
+	})
 }
 
-func TestDBConnection() {
+func main() {
+	app = setup()
+	app.Static("/", "./public")
 
-	ccuDb, ok, err := database.ConnectDB("ccu")
-	if !ok {
-		panic(err)
-	}
+	clients = make(map[string]string)
 
-	var strSQL string = "select id, game_id, title, description from jobs order by id desc limit 5"
+	chatSocketHandler()
 
-	var jobs []types.Job
-	result, err := ccuDb.Query(strSQL)
-	// err = result.Scan()
+	app.Get("/ws", ikisocket.New(func(kws *ikisocket.Websocket) {
 
-	if err != nil {
-		panic(err)
-	}
-
-	for result.Next() {
-		var job types.Job
-		err = result.Scan(&job.Id, &job.Game_id, &job.Title, &job.Description)
-		if err != nil {
-			panic(err)
+		userId := kws.Params("userId")
+		if userId != "" {
+			kws.SetAttribute("userId", userId)
 		}
-		jobs = append(jobs, job)
-	}
 
-	fmt.Printf("%v", jobs)
+		clients[userId] = kws.UUID
+
+	}))
+
+	app.Listen(":3000")
 }

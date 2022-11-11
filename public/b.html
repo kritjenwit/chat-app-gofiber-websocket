@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div>
+      <input type="text" name="roomId" id="roomId" />
+      <button type="button">Create Room</button>
+
+      <table>
+        <thead id="main"></thead>
+      </table>
+    </div>
+    <script src="js/app.js"></script>
+    <script>
+      const ws = new Ws();
+      /** @var {Websocket} wsChat */
+      const wsChat = new WebSocket("ws://localhost:3000/ws?userId=69122931");
+      const queryString = window.location.search;
+      const urlParams = new URLSearchParams(queryString);
+      const main = document.getElementById("main");
+
+      window.addEventListener("DOMContentLoaded", async () => {
+        wsChat.onopen = () => {
+          wsChat.send(
+            JSON.stringify({
+              type: "chat",
+              data: {
+                userId: urlParams.get("userId"),
+                message: "Hello",
+              },
+            })
+          );
+        };
+
+        wsChat.onmessage = (event) => {
+          var data = JSON.parse(event.data);
+          if (data.type === "chat") {
+            main.innerHTML += `
+                    <tr>
+                        <td>${data.response.userId}</td>
+                        <td>${data.response.message}</td>
+                    </tr>
+                `;
+          }
+        };
+      });
+    </script>
+  </body>
+</html>
